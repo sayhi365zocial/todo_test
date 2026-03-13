@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo List App</title>
+    <style>
+        /* Reset และ Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Container หลัก */
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            padding: 30px;
+        }
+
+        /* Header */
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        /* Form สำหรับเพิ่ม Todo */
+        .todo-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        #todoInput {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        #todoInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #addBtn {
+            padding: 12px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #addBtn:hover {
+            background: #5568d3;
+        }
+
+        /* Filter Buttons */
+        .filters {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: #f5f5f5;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Todo List */
+        #todoList {
+            list-style: none;
+        }
+
+        .todo-item {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .todo-item:hover {
+            background: #f0f0f0;
+        }
+
+        .todo-item.completed {
+            opacity: 0.6;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        /* Checkbox */
+        .todo-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        /* Todo Text */
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+            color: #333;
+        }
+
+        /* Delete Button */
+        .delete-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #ff5252;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 18px;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <!-- Container หลักของ App -->
+    <div class="container">
+        <!-- หัวเรื่อง -->
+        <h1>📝 Todo List</h1>
+
+        <!-- Form สำหรับเพิ่ม Todo ใหม่ -->
+        <div class="todo-form">
+            <input
+                type="text"
+                id="todoInput"
+                placeholder="เพิ่มรายการสิ่งที่ต้องทำ..."
+                autocomplete="off"
+            >
+            <button id="addBtn">เพิ่ม</button>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">ทั้งหมด</button>
+            <button class="filter-btn" data-filter="active">ยังไม่เสร็จ</button>
+            <button class="filter-btn" data-filter="completed">เสร็จแล้ว</button>
+        </div>
+
+        <!-- รายการ Todo -->
+        <ul id="todoList">
+            <li class="loading">กำลังโหลด...</li>
+        </ul>
+    </div>
+
+    <!-- เชื่อมต่อกับ JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
