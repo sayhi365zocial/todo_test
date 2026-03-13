@@ -1,6 +1,12 @@
+// โหลด environment variables
+require('dotenv').config();
+
 // นำเข้า Express framework
 const express = require('express');
 const path = require('path');
+
+// นำเข้า database module
+const { query, initDatabase } = require('./db');
 
 // สร้าง Express application
 const app = express();
@@ -15,79 +21,138 @@ app.use(express.json());
 // ไฟล์ HTML, CSS, JavaScript จะถูก serve จากโฟลเดอร์นี้
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ข้อมูล todos ที่เก็บไว้ใน memory (จะหายเมื่อ restart server)
-let todos = [
-  { id: 1, text: 'ตัวอย่าง Todo รายการที่ 1', completed: false },
-  { id: 2, text: 'ตัวอย่าง Todo รายการที่ 2', completed: true }
-];
+// ===============================
+// API Routes
+// ===============================
 
-// Counter สำหรับสร้าง ID ใหม่
-let nextId = 3;
+// API Route: GET /api/todos - ดึงรายการ todos ทั้งหมดจาก database
+app.get('/api/todos', async (req, res) => {
+  try {
+    // Query ข้อมูลทั้งหมดจาก database เรียงตาม created_at
+    const result = await query(
+      'SELECT id, text, completed, created_at, updated_at FROM todos ORDER BY created_at DESC'
+    );
 
-// API Route: GET /api/todos - ดึงรายการ todos ทั้งหมด
-app.get('/api/todos', (req, res) => {
-  res.json(todos);
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error('Error fetching todos:', error);
+    res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลได้' });
+  }
 });
 
-// API Route: POST /api/todos - สร้าง todo ใหม่
-app.post('/api/todos', (req, res) => {
-  const { text } = req.body;
+// API Route: POST /api/todos - สร้าง todo ใหม่ใน database
+app.post('/api/todos', async (req, res) => {
+  try {
+    const { text } = req.body;
 
-  // ตรวจสอบว่ามีข้อความหรือไม่
-  if (!text || text.trim() === '') {
-    return res.status(400).json({ error: 'กรุณาระบุข้อความ todo' });
+    // ตรวจสอบว่ามีข้อความหรือไม่
+    if (!text || text.trim() === '') {
+      return res.status(400).json({ error: 'กรุณาระบุข้อความ todo' });
+    }
+
+    // Insert todo ใหม่เข้า database และ return ข้อมูลที่สร้าง
+    const result = await query(
+      'INSERT INTO todos (text, completed) VALUES ($1, $2) RETURNING id, text, completed, created_at, updated_at',
+      [text.trim(), false]
+    );
+
+    res.status(201).json(result.rows[0]);
+
+  } catch (error) {
+    console.error('Error creating todo:', error);
+    res.status(500).json({ error: 'ไม่สามารถสร้าง todo ได้' });
   }
-
-  // สร้าง todo ใหม่
-  const newTodo = {
-    id: nextId++,
-    text: text.trim(),
-    completed: false
-  };
-
-  todos.push(newTodo);
-  res.status(201).json(newTodo);
 });
 
 // API Route: PUT /api/todos/:id - อัพเดท todo (toggle completed หรือแก้ไขข้อความ)
-app.put('/api/todos/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const { completed, text } = req.body;
+app.put('/api/todos/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { completed, text } = req.body;
 
-  // ค้นหา todo ที่ต้องการแก้ไข
-  const todo = todos.find(t => t.id === id);
+    // ตรวจสอบว่า todo นี้มีอยู่ใน database หรือไม่
+    const checkResult = await query('SELECT * FROM todos WHERE id = $1', [id]);
 
-  if (!todo) {
-    return res.status(404).json({ error: 'ไม่พบ todo ที่ต้องการ' });
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'ไม่พบ todo ที่ต้องการ' });
+    }
+
+    // สร้าง query สำหรับ update
+    let updateQuery = 'UPDATE todos SET updated_at = CURRENT_TIMESTAMP';
+    const values = [];
+    let paramCount = 1;
+
+    // อัพเดทค่า completed ถ้ามีการส่งมา
+    if (completed !== undefined) {
+      updateQuery += `, completed = $${paramCount}`;
+      values.push(completed);
+      paramCount++;
+    }
+
+    // อัพเดทค่า text ถ้ามีการส่งมา
+    if (text !== undefined && text.trim() !== '') {
+      updateQuery += `, text = $${paramCount}`;
+      values.push(text.trim());
+      paramCount++;
+    }
+
+    // เพิ่ม WHERE clause และ RETURNING
+    updateQuery += ` WHERE id = $${paramCount} RETURNING id, text, completed, created_at, updated_at`;
+    values.push(id);
+
+    // Execute update query
+    const result = await query(updateQuery, values);
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+    console.error('Error updating todo:', error);
+    res.status(500).json({ error: 'ไม่สามารถอัพเดท todo ได้' });
   }
-
-  // อัพเดทค่า
-  if (completed !== undefined) {
-    todo.completed = completed;
-  }
-
-  if (text !== undefined && text.trim() !== '') {
-    todo.text = text.trim();
-  }
-
-  res.json(todo);
 });
 
-// API Route: DELETE /api/todos/:id - ลบ todo
-app.delete('/api/todos/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = todos.findIndex(t => t.id === id);
+// API Route: DELETE /api/todos/:id - ลบ todo จาก database
+app.delete('/api/todos/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
 
-  if (index === -1) {
-    return res.status(404).json({ error: 'ไม่พบ todo ที่ต้องการลบ' });
+    // ลบ todo จาก database
+    const result = await query('DELETE FROM todos WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'ไม่พบ todo ที่ต้องการลบ' });
+    }
+
+    res.status(204).send();
+
+  } catch (error) {
+    console.error('Error deleting todo:', error);
+    res.status(500).json({ error: 'ไม่สามารถลบ todo ได้' });
   }
-
-  // ลบ todo ออกจาก array
-  todos.splice(index, 1);
-  res.status(204).send();
 });
 
-// เริ่มต้น server
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-});
+// ===============================
+// Initialize และเริ่มต้น Server
+// ===============================
+
+// ฟังก์ชันสำหรับเริ่มต้น server
+async function startServer() {
+  try {
+    // Initialize database และสร้าง table
+    await initDatabase();
+
+    // เริ่มต้น server
+    app.listen(PORT, () => {
+      console.log(`🚀 Server is running on http://localhost:${PORT}`);
+      console.log(`📊 Using PostgreSQL database`);
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// เรียกใช้ฟังก์ชันเริ่มต้น server
+startServer();
