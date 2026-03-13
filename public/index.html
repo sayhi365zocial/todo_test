@@ -3,207 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Todo List App</title>
+    <title>My Todo List - TailAdmin Style</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Tailwind Config - TailAdmin Style -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#465FFF',
+                        'primary-dark': '#3d52e6',
+                        secondary: '#F2F4F7',
+                        dark: '#1F2937',
+                        'text-secondary': '#6B7280',
+                        stroke: '#E5E7EB',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444'
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        /* Reset และ Base Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        /* Container หลัก */
-        .container {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            max-width: 600px;
-            width: 100%;
-            padding: 30px;
-        }
-
-        /* Header */
-        h1 {
-            color: #667eea;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2.5em;
-        }
-
-        /* Form สำหรับเพิ่ม Todo */
-        .todo-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-        }
-
-        #todoInput {
-            flex: 1;
-            padding: 12px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        #todoInput:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        #addBtn {
-            padding: 12px 25px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        #addBtn:hover {
-            background: #5568d3;
-        }
-
-        /* Filter Buttons */
-        .filters {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-
-        .filter-btn {
-            padding: 8px 16px;
-            background: #f5f5f5;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .filter-btn.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-
-        /* Todo List */
-        #todoList {
-            list-style: none;
+        /* Custom animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .todo-item {
-            background: #f9f9f9;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.3s;
+            animation: slideIn 0.3s ease-out;
         }
 
-        .todo-item:hover {
-            background: #f0f0f0;
-        }
-
-        .todo-item.completed {
-            opacity: 0.6;
-        }
-
-        .todo-item.completed .todo-text {
-            text-decoration: line-through;
-            color: #999;
-        }
-
-        /* Checkbox */
-        .todo-checkbox {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-
-        /* Todo Text */
-        .todo-text {
-            flex: 1;
-            font-size: 16px;
-            color: #333;
-        }
-
-        /* Delete Button */
-        .delete-btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .delete-btn:hover {
-            background: #ff5252;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            color: #999;
-            padding: 40px 20px;
-            font-size: 18px;
-        }
-
-        /* Loading State */
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #667eea;
+        /* Smooth transitions */
+        * {
+            transition-property: background-color, border-color, color, fill, stroke;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 200ms;
         }
     </style>
 </head>
-<body>
-    <!-- Container หลักของ App -->
-    <div class="container">
-        <!-- หัวเรื่อง -->
-        <h1>📝 Todo List</h1>
+<body class="bg-secondary min-h-screen p-4 md:p-7.5 font-sans antialiased">
 
-        <!-- Form สำหรับเพิ่ม Todo ใหม่ -->
-        <div class="todo-form">
-            <input
-                type="text"
-                id="todoInput"
-                placeholder="เพิ่มรายการสิ่งที่ต้องทำ..."
-                autocomplete="off"
-            >
-            <button id="addBtn">เพิ่ม</button>
+    <!-- Container หลัก -->
+    <div class="max-w-[1170px] mx-auto">
+
+        <!-- Header Section -->
+        <div class="mb-7.5">
+            <div class="bg-white rounded-3xl shadow-sm border border-stroke p-6 md:p-7.5">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <h1 class="text-3xl md:text-4xl font-bold text-dark mb-2">
+                            My Todo List
+                        </h1>
+                        <p class="text-text-secondary text-sm md:text-base">
+                            Manage your daily tasks efficiently
+                        </p>
+                    </div>
+                    <div class="flex gap-4">
+                        <!-- Task Counter -->
+                        <div class="bg-secondary rounded-2xl px-6 py-4 text-center">
+                            <div class="text-2xl md:text-3xl font-bold text-primary" id="taskCount">0</div>
+                            <div class="text-xs text-text-secondary mt-1">Active</div>
+                        </div>
+                        <div class="bg-secondary rounded-2xl px-6 py-4 text-center">
+                            <div class="text-2xl md:text-3xl font-bold text-success" id="completedCount">0</div>
+                            <div class="text-xs text-text-secondary mt-1">Completed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Filter Buttons -->
-        <div class="filters">
-            <button class="filter-btn active" data-filter="all">ทั้งหมด</button>
-            <button class="filter-btn" data-filter="active">ยังไม่เสร็จ</button>
-            <button class="filter-btn" data-filter="completed">เสร็จแล้ว</button>
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 gap-7.5">
+
+            <!-- Add Task Card -->
+            <div class="bg-white rounded-3xl shadow-sm border border-stroke p-6 md:p-7.5">
+                <h2 class="text-xl font-semibold text-dark mb-4">Add New Task</h2>
+                <div class="flex gap-3">
+                    <!-- Input field -->
+                    <input
+                        type="text"
+                        id="todoInput"
+                        placeholder="Enter your task here..."
+                        autocomplete="off"
+                        class="flex-1 bg-white border border-stroke rounded-lg px-4 py-3 text-dark placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                    <!-- Add Button -->
+                    <button
+                        id="addBtn"
+                        class="bg-primary hover:bg-primary-dark text-white font-semibold px-6 md:px-8 py-3 rounded-lg shadow-sm hover:shadow transition-all duration-200"
+                    >
+                        <span class="hidden md:inline">Add Task</span>
+                        <span class="md:hidden">Add</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tasks List Card -->
+            <div class="bg-white rounded-3xl shadow-sm border border-stroke p-6 md:p-7.5">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-dark">Tasks List</h2>
+                    <div class="text-sm text-text-secondary">
+                        Total: <span id="totalCount" class="font-semibold text-dark">0</span> tasks
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="border-t border-stroke mb-6"></div>
+
+                <!-- Tasks List -->
+                <ul id="todoList" class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                    <!-- Loading State -->
+                    <li class="text-center py-12">
+                        <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                        <p class="text-text-secondary mt-4">Loading tasks...</p>
+                    </li>
+                </ul>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden text-center py-16">
+                    <div class="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-dark mb-2">No tasks yet</h3>
+                    <p class="text-text-secondary text-sm">Add your first task to get started!</p>
+                </div>
+
+            </div>
+
         </div>
 
-        <!-- รายการ Todo -->
-        <ul id="todoList">
-            <li class="loading">กำลังโหลด...</li>
-        </ul>
+        <!-- Footer -->
+        <div class="text-center mt-7.5 text-text-secondary text-sm">
+            Built with <span class="text-danger">♥</span> using Tailwind CSS
+        </div>
+
     </div>
 
-    <!-- เชื่อมต่อกับ JavaScript -->
-    <script src="app.js"></script>
+    <!-- JavaScript -->
+    <script src="/app.js"></script>
 </body>
 </html>

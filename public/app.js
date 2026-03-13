@@ -1,119 +1,118 @@
 // ===============================
-// ตัวแปร Global
+// DOM Elements
 // ===============================
 
-// ดึง elements จาก DOM
 const todoInput = document.getElementById('todoInput');
 const addBtn = document.getElementById('addBtn');
 const todoList = document.getElementById('todoList');
-const filterBtns = document.querySelectorAll('.filter-btn');
+const emptyState = document.getElementById('emptyState');
 
-// เก็บสถานะ filter ปัจจุบัน (all, active, completed)
-let currentFilter = 'all';
-
-// เก็บข้อมูล todos ทั้งหมด
-let todos = [];
+// Counter elements
+const taskCount = document.getElementById('taskCount');
+const completedCount = document.getElementById('completedCount');
+const totalCount = document.getElementById('totalCount');
 
 // ===============================
 // API Functions
 // ===============================
 
 /**
- * ดึงรายการ todos ทั้งหมดจาก server
+ * GET /api/todos - โหลดรายการ todos ทั้งหมดจาก server
  */
-async function fetchTodos() {
-    try {
-        const response = await fetch('/api/todos');
-        const data = await response.json();
-        todos = data;
-        renderTodos();
-    } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการดึงข้อมูล:', error);
-        showError('ไม่สามารถดึงข้อมูลได้');
+async function loadTodos() {
+  try {
+    const response = await fetch('/api/todos');
+
+    if (!response.ok) {
+      throw new Error('Failed to load todos');
     }
+
+    const todos = await response.json();
+    renderTodos(todos);
+    updateTaskCount(todos);
+
+  } catch (error) {
+    console.error('Error loading todos:', error);
+    alert('ไม่สามารถโหลดรายการได้');
+  }
 }
 
 /**
- * เพิ่ม todo ใหม่ไปยัง server
+ * POST /api/todos - เพิ่ม todo ใหม่
  * @param {string} text - ข้อความของ todo
  */
 async function addTodo(text) {
-    try {
-        const response = await fetch('/api/todos', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ text })
-        });
+  try {
+    const response = await fetch('/api/todos', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ text })
+    });
 
-        if (!response.ok) {
-            throw new Error('ไม่สามารถเพิ่ม todo ได้');
-        }
-
-        const newTodo = await response.json();
-        todos.push(newTodo);
-        renderTodos();
-    } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการเพิ่ม todo:', error);
-        showError('ไม่สามารถเพิ่มรายการได้');
+    if (!response.ok) {
+      throw new Error('Failed to add todo');
     }
+
+    // Refresh รายการใหม่
+    await loadTodos();
+
+  } catch (error) {
+    console.error('Error adding todo:', error);
+    alert('ไม่สามารถเพิ่มรายการได้');
+  }
 }
 
 /**
- * อัพเดท todo (toggle completed status)
+ * PUT /api/todos/:id - Toggle done/undone
  * @param {number} id - ID ของ todo
  * @param {boolean} completed - สถานะ completed ใหม่
  */
 async function toggleTodo(id, completed) {
-    try {
-        const response = await fetch(`/api/todos/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ completed })
-        });
+  try {
+    const response = await fetch(`/api/todos/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ completed })
+    });
 
-        if (!response.ok) {
-            throw new Error('ไม่สามารถอัพเดท todo ได้');
-        }
-
-        const updatedTodo = await response.json();
-
-        // อัพเดทข้อมูลใน array
-        const index = todos.findIndex(t => t.id === id);
-        if (index !== -1) {
-            todos[index] = updatedTodo;
-            renderTodos();
-        }
-    } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการอัพเดท todo:', error);
-        showError('ไม่สามารถอัพเดทรายการได้');
+    if (!response.ok) {
+      throw new Error('Failed to toggle todo');
     }
+
+    // Refresh รายการใหม่
+    await loadTodos();
+
+  } catch (error) {
+    console.error('Error toggling todo:', error);
+    alert('ไม่สามารถอัพเดทรายการได้');
+  }
 }
 
 /**
- * ลบ todo
+ * DELETE /api/todos/:id - ลบ todo
  * @param {number} id - ID ของ todo ที่ต้องการลบ
  */
 async function deleteTodo(id) {
-    try {
-        const response = await fetch(`/api/todos/${id}`, {
-            method: 'DELETE'
-        });
+  try {
+    const response = await fetch(`/api/todos/${id}`, {
+      method: 'DELETE'
+    });
 
-        if (!response.ok) {
-            throw new Error('ไม่สามารถลบ todo ได้');
-        }
-
-        // ลบออกจาก array
-        todos = todos.filter(t => t.id !== id);
-        renderTodos();
-    } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการลบ todo:', error);
-        showError('ไม่สามารถลบรายการได้');
+    if (!response.ok) {
+      throw new Error('Failed to delete todo');
     }
+
+    // Refresh รายการใหม่
+    await loadTodos();
+
+  } catch (error) {
+    console.error('Error deleting todo:', error);
+    alert('ไม่สามารถลบรายการได้');
+  }
 }
 
 // ===============================
@@ -121,82 +120,124 @@ async function deleteTodo(id) {
 // ===============================
 
 /**
- * แสดงรายการ todos บนหน้าจอตาม filter ที่เลือก
+ * Render รายการ todos บนหน้าจอ
+ * @param {Array} todos - array ของ todos
  */
-function renderTodos() {
-    // กรองข้อมูลตาม filter
-    let filteredTodos = todos;
+function renderTodos(todos) {
+  // ล้างรายการเดิม
+  todoList.innerHTML = '';
 
-    if (currentFilter === 'active') {
-        filteredTodos = todos.filter(t => !t.completed);
-    } else if (currentFilter === 'completed') {
-        filteredTodos = todos.filter(t => t.completed);
-    }
+  // ถ้าไม่มีรายการ แสดง empty state
+  if (todos.length === 0) {
+    todoList.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    return;
+  }
 
-    // ล้างรายการเดิม
-    todoList.innerHTML = '';
+  // แสดง list และซ่อน empty state
+  todoList.classList.remove('hidden');
+  emptyState.classList.add('hidden');
 
-    // ถ้าไม่มีข้อมูล แสดง empty state
-    if (filteredTodos.length === 0) {
-        todoList.innerHTML = '<li class="empty-state">ไม่มีรายการ</li>';
-        return;
-    }
-
-    // สร้าง element สำหรับแต่ละ todo
-    filteredTodos.forEach(todo => {
-        const li = createTodoElement(todo);
-        todoList.appendChild(li);
-    });
+  // สร้าง element สำหรับแต่ละ todo
+  todos.forEach(todo => {
+    const li = createTodoItem(todo);
+    todoList.appendChild(li);
+  });
 }
 
 /**
  * สร้าง element สำหรับ todo แต่ละรายการ
- * @param {Object} todo - ข้อมูล todo
- * @returns {HTMLElement} - element ที่สร้างขึ้น
+ * @param {Object} todo - ข้อมูล todo { id, text, completed }
+ * @returns {HTMLElement} - li element
  */
-function createTodoElement(todo) {
-    // สร้าง li element
-    const li = document.createElement('li');
-    li.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+function createTodoItem(todo) {
+  // สร้าง li element
+  const li = document.createElement('li');
+  li.className = 'todo-item bg-secondary rounded-2xl border border-stroke p-4 flex items-center gap-4 hover:shadow-sm transition-all duration-200';
 
-    // สร้าง checkbox
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.className = 'todo-checkbox';
-    checkbox.checked = todo.completed;
-    checkbox.addEventListener('change', () => {
-        toggleTodo(todo.id, checkbox.checked);
-    });
+  // Checkbox container
+  const checkboxContainer = document.createElement('div');
+  checkboxContainer.className = 'flex-shrink-0';
 
-    // สร้างข้อความ
-    const span = document.createElement('span');
-    span.className = 'todo-text';
-    span.textContent = todo.text;
+  // Checkbox
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'w-5 h-5 rounded border-stroke text-primary focus:ring-2 focus:ring-primary cursor-pointer';
+  checkbox.checked = todo.completed;
 
-    // สร้างปุ่มลบ
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-btn';
-    deleteBtn.textContent = 'ลบ';
-    deleteBtn.addEventListener('click', () => {
-        if (confirm('ต้องการลบรายการนี้?')) {
-            deleteTodo(todo.id);
-        }
-    });
+  // Event: เมื่อ checkbox ถูกคลิก -> toggle todo
+  checkbox.addEventListener('change', () => {
+    toggleTodo(todo.id, checkbox.checked);
+  });
 
-    // รวม elements เข้าด้วยกัน
-    li.appendChild(checkbox);
-    li.appendChild(span);
-    li.appendChild(deleteBtn);
+  checkboxContainer.appendChild(checkbox);
 
-    return li;
+  // Text container
+  const textContainer = document.createElement('div');
+  textContainer.className = 'flex-1 min-w-0';
+
+  const span = document.createElement('span');
+  span.className = todo.completed
+    ? 'text-text-secondary line-through break-words'
+    : 'text-dark font-medium break-words';
+  span.textContent = todo.text;
+
+  textContainer.appendChild(span);
+
+  // Status badge
+  const badge = document.createElement('span');
+  if (todo.completed) {
+    badge.className = 'flex-shrink-0 px-3 py-1 bg-success/10 text-success text-xs font-semibold rounded-lg';
+    badge.textContent = 'Completed';
+  } else {
+    badge.className = 'flex-shrink-0 px-3 py-1 bg-warning/10 text-warning text-xs font-semibold rounded-lg';
+    badge.textContent = 'Active';
+  }
+
+  // Delete button
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'flex-shrink-0 bg-danger/10 hover:bg-danger text-danger hover:text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 text-sm';
+  deleteBtn.innerHTML = `
+    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+    </svg>
+    <span class="hidden sm:inline">Delete</span>
+  `;
+
+  // Event: เมื่อ delete button ถูกคลิก -> ลบ todo
+  deleteBtn.addEventListener('click', () => {
+    if (confirm('Are you sure you want to delete this task?')) {
+      deleteTodo(todo.id);
+    }
+  });
+
+  // รวม elements เข้าด้วยกัน
+  li.appendChild(checkboxContainer);
+  li.appendChild(textContainer);
+  li.appendChild(badge);
+  li.appendChild(deleteBtn);
+
+  return li;
 }
 
 /**
- * แสดงข้อความ error (สามารถปรับปรุงให้สวยงามได้)
- * @param {string} message - ข้อความที่ต้องการแสดง
+ * Update จำนวน task ที่เหลือ และ completed
+ * @param {Array} todos - array ของ todos
  */
-function showError(message) {
-    alert(message);
+function updateTaskCount(todos) {
+  // นับจำนวน tasks ที่ยังไม่เสร็จ (active)
+  const activeTasks = todos.filter(t => !t.completed).length;
+
+  // นับจำนวน tasks ที่เสร็จแล้ว
+  const completedTasks = todos.filter(t => t.completed).length;
+
+  // นับจำนวน tasks ทั้งหมด
+  const total = todos.length;
+
+  // อัพเดทใน DOM
+  taskCount.textContent = activeTasks;
+  completedCount.textContent = completedTasks;
+  totalCount.textContent = total;
 }
 
 // ===============================
@@ -204,64 +245,57 @@ function showError(message) {
 // ===============================
 
 /**
- * จัดการเมื่อกดปุ่มเพิ่ม todo
+ * Handle เมื่อกดปุ่ม Add Task
  */
-function handleAddTodo() {
-    const text = todoInput.value.trim();
+function handleAddTask() {
+  const text = todoInput.value.trim();
 
-    // ตรวจสอบว่ามีข้อความหรือไม่
-    if (text === '') {
-        alert('กรุณาใส่ข้อความ');
-        return;
-    }
+  // ตรวจสอบว่ามีข้อความหรือไม่
+  if (text === '') {
+    // แสดง visual feedback
+    todoInput.classList.add('border-danger');
+    setTimeout(() => {
+      todoInput.classList.remove('border-danger');
+    }, 1000);
+    return;
+  }
 
-    // เพิ่ม todo
-    addTodo(text);
+  // เพิ่ม todo
+  addTodo(text);
 
-    // ล้างช่อง input
-    todoInput.value = '';
-}
+  // ล้าง input
+  todoInput.value = '';
+  todoInput.focus();
 
-/**
- * จัดการเมื่อคลิกปุ่ม filter
- * @param {Event} e - Event object
- */
-function handleFilterClick(e) {
-    // เอา active class ออกจากปุ่มทั้งหมด
-    filterBtns.forEach(btn => btn.classList.remove('active'));
-
-    // เพิ่ม active class ให้กับปุ่มที่ถูกคลิก
-    e.target.classList.add('active');
-
-    // อัพเดท filter
-    currentFilter = e.target.dataset.filter;
-
-    // render ใหม่
-    renderTodos();
+  // แสดง success feedback
+  addBtn.textContent = '✓ Added!';
+  setTimeout(() => {
+    addBtn.innerHTML = '<span class="hidden md:inline">Add Task</span><span class="md:hidden">Add</span>';
+  }, 1000);
 }
 
 // ===============================
 // Event Listeners
 // ===============================
 
-// เมื่อกดปุ่ม "เพิ่ม"
-addBtn.addEventListener('click', handleAddTodo);
+// Event: คลิกปุ่ม Add Task
+addBtn.addEventListener('click', handleAddTask);
 
-// เมื่อกด Enter ในช่อง input
+// Event: กด Enter ในช่อง input
 todoInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        handleAddTodo();
-    }
-});
-
-// เมื่อคลิกปุ่ม filter
-filterBtns.forEach(btn => {
-    btn.addEventListener('click', handleFilterClick);
+  if (e.key === 'Enter') {
+    handleAddTask();
+  }
 });
 
 // ===============================
 // Initialization
 // ===============================
 
-// โหลดข้อมูลเมื่อเริ่มต้น
-fetchTodos();
+// โหลดรายการ todos เมื่อเริ่มต้น
+loadTodos();
+
+// Focus input field เมื่อโหลดหน้าเสร็จ
+window.addEventListener('load', () => {
+  todoInput.focus();
+});
